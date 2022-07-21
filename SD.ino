@@ -13,23 +13,23 @@ char sd_dir[20] = "/";
 
 bool sd_setup () {
   if (!SD_MMC.begin()) {
-    bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Card reader initialisation failed");
+    publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Card reader initialisation failed");
     return false;
   }
   if (SD_MMC.cardType() == CARD_NONE) {
-    bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "No SD card inserted");
+    publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "No SD card inserted");
     return false;
   }
   sprintf (buffer, "SD card mounted: size: %llu MB; space: %llu MB; used: %llu MB", SD_MMC.cardSize() / (1024 * 1024), SD_MMC.totalBytes() / (1024 * 1024), SD_MMC.usedBytes() / (1024 * 1024));
-  bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
+  publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
   return true;
 }
 
-bool sd_load_settings() { // TODO: use JSON command strings instead
+bool sd_load_settings() { // TODO: use JSON command strings instead (same as fs_load_settings?)
 /*  char linebuffer[80];
   File file = SD_MMC.open ("/CONFIG.TXT");
   if (!file) {
-    bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Failed to open configuration file CONFIG.TXT");
+    publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Failed to open configuration file CONFIG.TXT");
     return false;
   }
   uint8_t i = 0; 
@@ -42,34 +42,34 @@ bool sd_load_settings() { // TODO: use JSON command strings instead
           strcpy (wifi_type, String(linebuffer).substring(5).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_SSID")) {
-          strcpy (eeprom_network_esp32.wifi_ssid, String(linebuffer).substring(5).c_str());
+          strcpy (config_network_esp32.wifi_ssid, String(linebuffer).substring(5).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_PASSWORD")) {
-          strcpy (eeprom_network_esp32.wifi_password, String(linebuffer).substring(9).c_str());
+          strcpy (config_network_esp32.wifi_password, String(linebuffer).substring(9).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_AP_SSID")) {
-          strcpy (eeprom_network_esp32.ap_ssid, String(linebuffer).substring(8).c_str());
+          strcpy (config_network_esp32.ap_ssid, String(linebuffer).substring(8).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_AP_PASSWORD")) {
-          strcpy (eeprom_network_esp32.ap_password, String(linebuffer).substring(12).c_str());
+          strcpy (config_network_esp32.ap_password, String(linebuffer).substring(12).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_YAMCS_SERVER")) {
-          strcpy (eeprom_network_esp32.yamcs_server, String(linebuffer).substring(11).c_str());
+          strcpy (config_network_esp32.yamcs_server, String(linebuffer).substring(11).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_YAMCS_PORT")) {
           udp_port = String(linebuffer).substring(9).toInt();
         }
         if (String(linebuffer).startsWith("ESP32_UDP_SERVER")) {
-          strcpy (eeprom_network_esp32.udp_server, String(linebuffer).substring(11).c_str());
+          strcpy (config_network_esp32.udp_server, String(linebuffer).substring(11).c_str());
         }
         if (String(linebuffer).startsWith("ESP32_UDP_PORT")) {
-          eeprom_network_esp32.udp_port = String(linebuffer).substring(9).toInt();
+          config_network_esp32.udp_port = String(linebuffer).substring(9).toInt();
         }
         if (String(linebuffer).startsWith("ESP32_YAMCS_PORT")) {
-          eeprom_network_esp32.yamcs_port = String(linebuffer).substring(9).toInt();
+          config_network_esp32.yamcs_port = String(linebuffer).substring(9).toInt();
         }
         if (String(linebuffer).startsWith("ESP32_NTP_SERVER")) {
-          strcpy (eeprom_network_esp32.ntp_server, String(linebuffer).substring(11).c_str());
+          strcpy (config_network_esp32.ntp_server, String(linebuffer).substring(11).c_str());
         }
         i = 0;
       }
@@ -98,12 +98,12 @@ void sd_save_image (const uint8_t * fb_buf, size_t fb_len) {
     ov2640.filesize = fb_len;
     File imagefile = SD_MMC.open (ov2640.filename, FILE_WRITE);
     if (!imagefile) {
-      bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Failed to open image file in writing mode");
+      publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Failed to open image file in writing mode");
       esp32cam.sd_image_enabled = false;
     } 
     else {
       imagefile.write(fb_buf, fb_len); // payload (image), payload length
-      esp32cam.sd_current = true;
+      //esp32cam.sd_current = true;
     } 
     imagefile.close();
     ov2640.sd_ms = millis()-timestamp_save;
@@ -115,15 +115,15 @@ void sd_create_imagedir () {
   sprintf (sd_dir, "/%s%s%s", timeClient.getFormattedDate().substring(0,4), timeClient.getFormattedDate().substring(5,7), timeClient.getFormattedDate().substring(8,10));
   if (SD_MMC.open (sd_dir)) {
     sprintf (buffer, "Directory %s already exists", sd_dir);
-    bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
+    publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
   }
   else {
     if (SD_MMC.mkdir(sd_dir)) {
       sprintf (buffer, "Created directory %s", sd_dir);  
-      bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
+      publish_event (STS_ESP32CAM, SS_SD, EVENT_INIT, buffer);
     } else {
       sprintf (buffer, "Failed to create directory %s", sd_dir);  
-      bus_publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, buffer);
+      publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, buffer);
     }
   }
 }

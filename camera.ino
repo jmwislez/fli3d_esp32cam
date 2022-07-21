@@ -65,13 +65,13 @@ bool camera_setup () {
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     sprintf(buffer, "Camera init failed with error 0x%x", err);
-    bus_publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, buffer);
+    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, buffer);
     return false;
   }
 
   sensor_t * s = esp_camera_sensor_get();
   ov2640.resolution = s->status.framesize;
-  bus_publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, "OV2640 camera initialized");
+  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, "OV2640 camera initialized");
   return true;
 }
 
