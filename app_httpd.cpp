@@ -48,7 +48,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   ov2640.millis = millis ();
   fb = esp_camera_fb_get();
   sensor_t * s = esp_camera_sensor_get();
-  esp32cam.camera_image_rate++;
+  esp32cam.camera_rate++;
   if (!fb) {
     publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_FAIL, "Camera capture failed");
     httpd_resp_send_500(req);
@@ -106,7 +106,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     ov2640.millis = millis();
     fb = esp_camera_fb_get();
     sensor_t * s = esp_camera_sensor_get();
-    esp32cam.camera_image_rate++;
+    esp32cam.camera_rate++;
     if (!fb) {
       publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Camera capture failed");
       res = ESP_FAIL;
@@ -320,7 +320,7 @@ void camera_server_setup () {
       .user_ctx  = NULL
   };
 
-  sprintf (buffer, "Starting camera web server on port %d", config.server_port);
+  sprintf (buffer, "Starting camera web server on %s:%d", config_esp32cam.server_ip, config.server_port);
   publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
   if (httpd_start(&camera_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(camera_httpd, &index_uri);
@@ -331,7 +331,7 @@ void camera_server_setup () {
 
   config.server_port += 1;
   config.ctrl_port += 1;
-  sprintf (buffer, "Starting camera stream server on port %d", config.server_port);
+  sprintf (buffer, "Starting camera stream server on port %s:%d", config_esp32cam.server_ip, config.server_port);
   publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
   if (httpd_start(&stream_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(stream_httpd, &stream_uri);

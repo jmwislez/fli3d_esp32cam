@@ -2,17 +2,7 @@
  *  Fli3d Camera - camera and storage functionality
  *  
  *  For ESP32CAM board with OV2640 camera (compile for AI Thinker ESP32-CAM)
- 
- *  Functionality:
- *  - Read initial fli3d system settings from SD card
- *  - Acquire imagery from camera 
- *  - Store imagery on SD card 
- *  - Transmit imagery in real-time through wifi 
- *  - Allow commanding of fli3d system via web interface
- *  - Transmission of status information over serial port to ESP32-minikit
- *  - Acquisition of status information over serial port from ESP32-minikit
- *  - Storage of all status information on SD card
- *  - Transmission of all status information over wifi
+ *
  */
 
 /*  This sketch is based on https://hackaday.io/project/168563-esp32-cam-example-expanded, 
@@ -31,7 +21,7 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.0.2 (20220721)"
+#define SW_VERSION "Fli3d ESP32cam v2.0.3 (20220722)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 // Compilation options
