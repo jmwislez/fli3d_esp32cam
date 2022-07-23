@@ -3,6 +3,8 @@
  */
 
 extern bool sync_fs_ccsds ();
+extern File file_ccsds;
+extern File file_json;
  
 void timer_setup () {
     var_timer.next_second = 1000*(millis()/1000) + 1000;
@@ -13,7 +15,9 @@ void timer_loop () {
   timer_esp32cam.millis = millis ();
   if (timer_esp32cam.millis >= var_timer.next_second) {
     publish_packet ((ccsds_t*)&esp32cam);
-    sync_fs_ccsds ();
+    publish_packet ((ccsds_t*)&timer_esp32cam);
+    if (file_ccsds) { sync_file_ccsds (); }
+    if (file_json) { sync_file_json (); }
     var_timer.next_second += 1000;
   }
   if (timer_esp32cam.millis >= var_timer.next_wifi_time) {

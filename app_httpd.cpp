@@ -37,7 +37,7 @@ httpd_handle_t stream_httpd = NULL;
 httpd_handle_t camera_httpd = NULL;
 
 static esp_err_t capture_handler(httpd_req_t *req) {
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'capture' received over web interface");
+  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'capture' received over http interface");
   static uint32_t timestamp_send;
   ov2640.camera_mode = CAM_SINGLE;
 
@@ -48,6 +48,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   ov2640.millis = millis ();
   fb = esp_camera_fb_get();
   sensor_t * s = esp_camera_sensor_get();
+  esp32cam.camera_active = true;
   esp32cam.camera_rate++;
   if (!fb) {
     publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_FAIL, "Camera capture failed");
@@ -83,7 +84,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
 
 static esp_err_t stream_handler(httpd_req_t *req) {
   static uint32_t timestamp_send;
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'start stream' received over web interface");
+  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'start stream' received over http interface");
   ov2640.camera_mode = CAM_STREAM;
 
   // continuously grab frames
@@ -106,6 +107,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     ov2640.millis = millis();
     fb = esp_camera_fb_get();
     sensor_t * s = esp_camera_sensor_get();
+    esp32cam.camera_active = true;
     esp32cam.camera_rate++;
     if (!fb) {
       publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Camera capture failed");
@@ -148,7 +150,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     }
     if (res != ESP_OK) {
       ov2640.camera_mode = CAM_IDLE;
-      publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'stop stream' received over web interface");
+      publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'stop stream' received over http interface");
       break;
     }
   }
@@ -238,7 +240,7 @@ static esp_err_t cmd_handler(httpd_req_t *req) {
 }
 
 static esp_err_t status_handler(httpd_req_t *req) {
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'status' received over web interface");
+  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'status' received over http interface");
   static char json_response[1024];
   sensor_t * s = esp_camera_sensor_get();
   char * p = json_response;
@@ -275,7 +277,7 @@ static esp_err_t status_handler(httpd_req_t *req) {
 }
 
 static esp_err_t index_handler(httpd_req_t *req) {
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'index' received over web interface");
+  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'index' received over http interface");
   httpd_resp_set_type(req, "text/html");
   httpd_resp_set_hdr(req, "Content-Encoding", "identity");
   sensor_t * s = esp_camera_sensor_get();
@@ -320,20 +322,25 @@ void camera_server_setup () {
       .user_ctx  = NULL
   };
 
-  sprintf (buffer, "Starting camera web server on %s:%d", config_esp32cam.server_ip, config.server_port);
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
   if (httpd_start(&camera_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(camera_httpd, &index_uri);
     httpd_register_uri_handler(camera_httpd, &cmd_uri);
     httpd_register_uri_handler(camera_httpd, &status_uri);
     httpd_register_uri_handler(camera_httpd, &capture_uri);
-  }
-
-  config.server_port += 1;
-  config.ctrl_port += 1;
-  sprintf (buffer, "Starting camera stream server on port %s:%d", config_esp32cam.server_ip, config.server_port);
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
-  if (httpd_start(&stream_httpd, &config) == ESP_OK) {
-    httpd_register_uri_handler(stream_httpd, &stream_uri);
+    esp32cam.http_enabled = true;
+    sprintf (buffer, "Started camera server on http://%s:%d", WiFi.localIP().toString().c_str(), config.server_port);
+    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
+    config.server_port += 1;
+    config.ctrl_port += 1;
+    if (httpd_start(&stream_httpd, &config) == ESP_OK) {
+      httpd_register_uri_handler(stream_httpd, &stream_uri);
+      sprintf (buffer, "Started camera stream server on %s:%d", WiFi.localIP().toString().c_str(), config.server_port);
+      publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, buffer);
+    }
+    else {
+      esp32cam.http_enabled = false;
+      sprintf (buffer, "Failed to start camera stream server on %s:%d", WiFi.localIP().toString().c_str(), config.server_port);
+      publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, buffer);
+    }
   }
 }
