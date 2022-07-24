@@ -29,7 +29,7 @@ const float smear[11] = {2.0*CAM_H_ANGLE/160.0,   // mode 0, 160x120
                          2.0*CAM_H_ANGLE/1280.0,  // mode 9, 1280x1024
                          2.0*CAM_H_ANGLE/1600.0}; // mode 10, 1600x1200
 
-bool camera_setup () {
+bool camera_setup() {
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;

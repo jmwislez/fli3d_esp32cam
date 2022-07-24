@@ -10,29 +10,29 @@
  *  https://github.com/espressif/arduino-esp32/tree/master/libraries/ESP32/examples/Camera/CameraWebServer
 */
 
-// TODO: ftp server conflicts with web server
+// TODO: solve ftp server conflict with web server
+// TODO: allow both SD and FS
+// TODO: ftp server unreliable
 // TODO: images corrupted when auto-resolution is on (even with unchanged resolution)
-// TODO: tune image
+// TODO: tune image quality
 // TODO: post-flight emergency mode: Access SD data over FTP/wifi before battery runs out
-// TODO: based on tm_motion_t, void motion_imageSmear () { // TODO: when to send, to be most effective?  on demand?
-// provides to camera the current expected image smear, in deg/s
-//  sprintf (buffer, "{\"cmd\":\"set_smear\",\"trans\":%.2f,\"axial\":%.2f}", sqrt (mpu6050.gyro_y*mpu6050.gyro_y+mpu6050.gyro_z*mpu6050.gyro_z), mpu6050.gyro_x);
-//  publish_event (TC_ESP32CAM, SS_OV2640, EVENT_CMD, buffer);//
-//}
+// TODO: based on tm_motion_t, calculate the current expected image smear, in deg/s
+//  trans: sqrt (mpu6050.gyro_y*mpu6050.gyro_y+mpu6050.gyro_z*mpu6050.gyro_z)
+//  axial: mpu6050.gyro_x
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.0.4 (20220723)"
+#define SW_VERSION "Fli3d ESP32cam v2.0.5 (20220724)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 // Compilation options
-#define DEBUG_OVER_SERIAL // disable when ESP32 and ESP32CAM are to be connected
+//#define DEBUG_OVER_SERIAL // overrides keep-alive mechanism over serial when ESP32CAM is not present, thus disabling serial buffer and enabling keeping sending of TM even if no response
 
 // Libraries
 #include "fli3d.h"
 
 // Functions declared in app_httpd.cpp
-void camera_server_setup ();
+void camera_server_setup();
 
 // Global variables used in this file
 extern char buffer[JSON_MAX_SIZE];
@@ -40,18 +40,18 @@ extern char buffer[JSON_MAX_SIZE];
 void setup() {
   // Initialize serial connection to ESP32 (or for debug)
   Serial.begin (SerialBaud);
-  Serial.println ();
+  Serial.println();
   Serial.setDebugOutput (true); // TODO: needs to be false in case of CCSDS packet transfers?
   ov2640.camera_mode = CAM_INIT;
   esp32cam.opsmode = MODE_INIT;
 
   // Load default (hardcoded) WiFi and other settings, as fallback
-  load_default_config (); 
-  ccsds_init ();
+  load_default_config(); 
+  ccsds_init();
 
   // If SD to be enabled and initialization successful, load WiFi and other settings from configuration files on SD
   if (config_esp32cam.sd_enable) {
-    if (esp32cam.sd_enabled = sd_setup ()) {
+    if (esp32cam.sd_enabled = sd_setup()) {
       publish_packet ((ccsds_t*)tm_this);  // #0
       if (file_load_settings (FS_SD_MMC)) {
         file_load_config (FS_SD_MMC, config_this->config_file);
@@ -65,8 +65,11 @@ void setup() {
   }
     
   // If FS to be enabled and initialization successful, load WiFi and other settings from configuration files on FS
+  if (esp32cam.sd_enabled and config_this->fs_enable) {
+    publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "Only one file system can be set up (keeping SD, disabling FS).");
+  }
   if (config_this->fs_enable) {
-    if (tm_this->fs_enabled = fs_setup ()) {
+    if (tm_this->fs_enabled = fs_setup()) {
       publish_packet ((ccsds_t*)tm_this);  // #0
       if (file_load_settings (FS_LITTLEFS)) {
         file_load_config (FS_LITTLEFS, config_this->config_file);
@@ -87,7 +90,7 @@ void setup() {
 
   // If WiFi to be enabled (AP/client), initialise
   if (config_this->wifi_enable) {
-    wifi_setup ();
+    wifi_setup();
     esp32cam.wifi_image_enabled = config_esp32cam.wifi_image_enable;
     esp32cam.wifi_udp_enabled = config_esp32cam.wifi_udp_enable;
     esp32cam.wifi_yamcs_enabled = config_esp32cam.wifi_yamcs_enable;  
@@ -95,21 +98,26 @@ void setup() {
   }
 
   // If Camera to be enabled and WiFi enabled, initialise
+  if (config_esp32cam.ftp_enable and config_esp32cam.camera_enable) {
+    config_esp32cam.ftp_enable = false;
+    publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "FTP server and web server incompatible. Disabling FTP server.");    
+  }
   if (config_esp32cam.camera_enable and esp32cam.wifi_enabled) {
-    if (esp32cam.camera_enabled = camera_setup ()) {
-      camera_server_setup ();
+    if (esp32cam.camera_enabled = camera_setup()) {
+      camera_server_setup();
       publish_packet ((ccsds_t*)tm_this);  // #4
     }
   } 
 
   // If FTP is to be enabled and FS enabled, initialise FTP server
   if (config_esp32cam.ftp_enable and ((config_esp32cam.ftp_fs == FS_LITTLEFS and esp32cam.fs_enabled) or (config_esp32cam.ftp_fs == FS_SD_MMC and esp32cam.sd_enabled))) {
-    esp32cam.ftp_enabled = ftp_setup ();
+    esp32cam.ftp_enabled = ftp_setup();
     publish_packet ((ccsds_t*)tm_this);  // #5
   }
 
   // Initialise Timer and close initialisation
-  timer_setup ();
+  ntp_check();
+  timer_setup();
   ov2640.camera_mode = CAM_IDLE;
   esp32cam.opsmode = MODE_NOMINAL;
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, "Initialisation complete");  
@@ -118,16 +126,16 @@ void setup() {
 void loop() {
   static uint32_t start_millis;
 
-  timer_loop ();
+  timer_loop();
   
-  if (serial_check ()) {
-    start_millis = millis ();
-    serial_parse ();
+  if (serial_check()) {
+    start_millis = millis();
+    serial_parse();
     timer_esp32cam.serial_duration = min((uint32_t)255, (uint32_t)millis() - start_millis);
   } 
 
   // Serial keepalive mechanism
-  start_millis = millis ();    
+  start_millis = millis();    
   if (!config_this->debug_over_serial and timer_esp32cam.millis - var_timer.last_serial_out_millis > KEEPALIVE_INTERVAL) {
     if (tm_this->serial_connected) {
       Serial.println ("O");
@@ -146,22 +154,22 @@ void loop() {
  // FTP check
   if ((esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT or esp32.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
     // FTP server is active when Fli3d is being prepared or done (or no data from ESP32)
-    start_millis = millis ();    
+    start_millis = millis();    
     ftp_check (config_this->buffer_fs);
     timer_esp32cam.ftp_duration += millis() - start_millis;
   }
 
   // wifi check
   if (var_timer.do_wifi and tm_this->wifi_enabled) {
-    start_millis = millis ();
-    wifi_check ();
+    start_millis = millis();
+    wifi_check();
     timer_esp32cam.wifi_duration += millis() - start_millis;
   }
 
   // NTP check
-  if ((esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
-    start_millis = millis ();
-    time_check ();
+  if (!tm_this->time_set and (esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
+    start_millis = millis();
+    ntp_check();
     timer_esp32cam.wifi_duration += millis() - start_millis;
   }
 }

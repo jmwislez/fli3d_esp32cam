@@ -42,10 +42,9 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   ov2640.camera_mode = CAM_SINGLE;
 
   // grab single frame
-  //if (ov2640.auto_res) { set_camera_resolution(transRot, axialRot); } // TODO: solve bug
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
-  ov2640.millis = millis ();
+  ov2640.millis = millis();
   fb = esp_camera_fb_get();
   sensor_t * s = esp_camera_sensor_get();
   esp32cam.camera_active = true;
@@ -284,7 +283,7 @@ static esp_err_t index_handler(httpd_req_t *req) {
   return httpd_resp_send(req, (const char *)index_ov2640_html, index_ov2640_html_len);
 }
 
-void camera_server_setup () {
+void camera_server_setup() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
   httpd_uri_t index_uri = {

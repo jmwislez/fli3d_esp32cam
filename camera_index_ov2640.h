@@ -622,7 +622,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   document
     .querySelectorAll('.close')
     .forEach(el => {
-      el.onclick = () => {
+      el.onclick =() => {
         hide(el.parentNode)
       }
     })
@@ -646,12 +646,12 @@ document.addEventListener('DOMContentLoaded', function (event) {
   const streamButton = document.getElementById('toggle-stream')
   const closeButton = document.getElementById('close-stream')
 
-  const stopStream = () => {
+  const stopStream =() => {
     window.stop();
     streamButton.innerHTML = 'Start Stream'
   }
 
-  const startStream = () => {
+  const startStream =() => {
     view.src = `${streamUrl}/stream`
     show(viewContainer)
     view.scrollIntoView(false);
@@ -659,19 +659,19 @@ document.addEventListener('DOMContentLoaded', function (event) {
   }
 
   // Attach actions to buttons
-  stillButton.onclick = () => {
+  stillButton.onclick =() => {
     stopStream()
     view.src = `${baseHost}/capture?_cb=${Date.now()}`
     show(viewContainer)
     view.scrollIntoView(false);
   }
 
-  closeButton.onclick = () => {
+  closeButton.onclick =() => {
     stopStream()
     hide(viewContainer)
   }
 
-  streamButton.onclick = () => {
+  streamButton.onclick =() => {
     const streamEnabled = streamButton.innerHTML === 'Stop Stream'
     if (streamEnabled) {
       stopStream()
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   document
     .querySelectorAll('.default-action')
     .forEach(el => {
-      el.onchange = () => updateConfig(el)
+      el.onchange =() => updateConfig(el)
     })
 
   // Custom actions
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   const agc = document.getElementById('agc')
   const agcGain = document.getElementById('agc_gain-group')
   const gainCeiling = document.getElementById('gainceiling-group')
-  agc.onchange = () => {
+  agc.onchange =() => {
     updateConfig(agc)
     if (agc.checked) {
       show(gainCeiling)
@@ -706,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // Exposure
   const aec = document.getElementById('aec')
   const exposure = document.getElementById('aec_value-group')
-  aec.onchange = () => {
+  aec.onchange =() => {
     updateConfig(aec)
     aec.checked ? hide(exposure) : show(exposure)
   }
@@ -714,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // AWB
   const awb = document.getElementById('awb_gain')
   const wb = document.getElementById('wb_mode-group')
-  awb.onchange = () => {
+  awb.onchange =() => {
     updateConfig(awb)
     awb.checked ? show(wb) : hide(wb)
   }
@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   // Framesize
   const framesize = document.getElementById('framesize')
 
-  framesize.onchange = () => {
+  framesize.onchange =() => {
     updateConfig(framesize)
   }
 
