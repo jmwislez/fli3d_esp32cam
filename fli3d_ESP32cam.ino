@@ -22,7 +22,7 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.0.5 (20220724)"
+#define SW_VERSION "Fli3d ESP32cam v2.0.6 (20220725)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 // Compilation options
@@ -39,9 +39,7 @@ extern char buffer[JSON_MAX_SIZE];
 
 void setup() {
   // Initialize serial connection to ESP32 (or for debug)
-  Serial.begin (SerialBaud);
-  Serial.println();
-  Serial.setDebugOutput (true); // TODO: needs to be false in case of CCSDS packet transfers?
+  serial_setup ();
   ov2640.camera_mode = CAM_INIT;
   esp32cam.opsmode = MODE_INIT;
 
@@ -127,7 +125,8 @@ void loop() {
   static uint32_t start_millis;
 
   timer_loop();
-  
+
+  // Check for TM from ESP32
   if (serial_check()) {
     start_millis = millis();
     serial_parse();
@@ -136,19 +135,7 @@ void loop() {
 
   // Serial keepalive mechanism
   start_millis = millis();    
-  if (!config_this->debug_over_serial and timer_esp32cam.millis - var_timer.last_serial_out_millis > KEEPALIVE_INTERVAL) {
-    if (tm_this->serial_connected) {
-      Serial.println ("O");
-    }
-    else {
-      Serial.println ("o");
-    }
-    var_timer.last_serial_out_millis = millis();
-  }
-  if (!config_this->debug_over_serial and tm_this->serial_connected and millis()-var_timer.last_serial_in_millis > 2*KEEPALIVE_INTERVAL) {
-    tm_this->serial_connected = false;
-    tm_this->warn_serial_connloss = true;
-  }
+  serial_keepalive();
   timer_esp32cam.serial_duration += millis() - start_millis;
 
  // FTP check

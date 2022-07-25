@@ -8,13 +8,13 @@
 #include <NTPClient.h>
 
 extern NTPClient timeClient;
-extern char sd_today_dir[16];
+extern char today_dir[16];
 
 void sd_save_image (const uint8_t * fb_buf, size_t fb_len) {
   if (esp32cam.sd_enabled and esp32cam.sd_image_enabled) {
     static uint32_t timestamp_save = millis();
     timeClient.update();
-    sprintf (ov2640.filename, "%s/%02d%02d%02d-%04d.jpg", sd_today_dir, timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds(), ov2640.packet_ctr);
+    sprintf (ov2640.filename, "%s/%02d%02d%02d-%04d.jpg", today_dir, timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds(), ov2640.packet_ctr);
     ov2640.filesize = fb_len;
     File imagefile = SD_MMC.open (ov2640.filename, FILE_WRITE);
     if (!imagefile) {
