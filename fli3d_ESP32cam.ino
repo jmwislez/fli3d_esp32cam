@@ -25,8 +25,7 @@
 #define SW_VERSION "Fli3d ESP32cam v2.0.6 (20220725)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
-// Compilation options
-//#define DEBUG_OVER_SERIAL // overrides keep-alive mechanism over serial when ESP32CAM is not present, thus disabling serial buffer and enabling keeping sending of TM even if no response
+#define SERIAL_KEEPALIVE_OVERRIDE
 
 // Libraries
 #include "fli3d.h"
@@ -79,11 +78,6 @@ void setup() {
   // Now that TM buffering should be hopefully set up, announce we're there
   sprintf (buffer, "%s started on %s", SW_VERSION, subsystemName[SS_THIS]); 
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, buffer);
-
-  #ifdef DEBUG_OVER_SERIAL  
-  config_this->debug_over_serial = true;
-  tm_this->serial_connected = true;
-  #endif // DEBUG_OVER_SERIAL
   publish_packet ((ccsds_t*)tm_this);  // #1
 
   // If WiFi to be enabled (AP/client), initialise
@@ -134,9 +128,14 @@ void loop() {
   } 
 
   // Serial keepalive mechanism
+  #ifndef SERIAL_KEEPALIVE_OVERRIDE
   start_millis = millis();    
   serial_keepalive();
   timer_esp32cam.serial_duration += millis() - start_millis;
+  #else
+  tm_this->serial_connected = true;
+  tm_this->warn_serial_connloss = false;
+  #endif
 
  // FTP check
   if ((esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT or esp32.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
