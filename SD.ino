@@ -20,6 +20,7 @@ void sd_save_image (const uint8_t * fb_buf, size_t fb_len) {
     if (!imagefile) {
       publish_event (STS_ESP32CAM, SS_SD, EVENT_ERROR, "Failed to open image file in writing mode");
       esp32cam.sd_image_enabled = false;
+      esp32cam.err_sd_dataloss = true;
     } 
     else {
       imagefile.write(fb_buf, fb_len); // payload (image), payload length

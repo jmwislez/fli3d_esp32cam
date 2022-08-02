@@ -40,6 +40,7 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'capture' received over http interface");
   static uint32_t timestamp_send;
   ov2640.camera_mode = CAM_SINGLE;
+  esp32cam.http_active = true;
 
   // grab single frame
   camera_fb_t * fb = NULL;
@@ -49,6 +50,10 @@ static esp_err_t capture_handler(httpd_req_t *req) {
   sensor_t * s = esp_camera_sensor_get();
   esp32cam.camera_active = true;
   esp32cam.camera_rate++;
+  if (esp32cam.sd_enabled and esp32cam.sd_image_enabled) {
+    esp32cam.sd_image_rate++;
+  }
+
   if (!fb) {
     publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_FAIL, "Camera capture failed");
     httpd_resp_send_500(req);
@@ -72,8 +77,10 @@ static esp_err_t capture_handler(httpd_req_t *req) {
       ov2640.exposure_ms = s->status.aec_value;
     }
     sd_save_image ((const uint8_t *)fb->buf, fb->len);
+    esp32cam.tc_exec_ctr++;
   } else {
     publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Grabbed picture is no jpeg");
+    esp32cam.tc_fail_ctr++;
   }
   
   esp_camera_fb_return(fb);
@@ -85,6 +92,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   static uint32_t timestamp_send;
   publish_event (STS_ESP32CAM, SS_OV2640, EVENT_CMD_ACK, "Command 'start stream' received over http interface");
   ov2640.camera_mode = CAM_STREAM;
+  esp32cam.http_active = true;
 
   // continuously grab frames
   camera_fb_t * fb = NULL;
@@ -108,6 +116,9 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     sensor_t * s = esp_camera_sensor_get();
     esp32cam.camera_active = true;
     esp32cam.camera_rate++;
+    if (esp32cam.sd_enabled and esp32cam.sd_image_enabled) {
+      esp32cam.sd_image_rate++;
+    }
     if (!fb) {
       publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Camera capture failed");
       res = ESP_FAIL;
@@ -162,6 +173,8 @@ static esp_err_t cmd_handler(httpd_req_t *req) {
   size_t buf_len;
   char variable[32] = {0,};
   char value[32] = {0,};
+
+  esp32cam.http_active = true;
 
   buf_len = httpd_req_get_url_query_len(req) + 1;
   if (buf_len > 1) {
@@ -243,6 +256,7 @@ static esp_err_t status_handler(httpd_req_t *req) {
   static char json_response[1024];
   sensor_t * s = esp_camera_sensor_get();
   char * p = json_response;
+  esp32cam.http_active = true;
   *p++ = '{';
   p+=sprintf(p, "\"framesize\":%u,", s->status.framesize);
   p+=sprintf(p, "\"quality\":%u,", s->status.quality);
@@ -280,6 +294,7 @@ static esp_err_t index_handler(httpd_req_t *req) {
   httpd_resp_set_type(req, "text/html");
   httpd_resp_set_hdr(req, "Content-Encoding", "identity");
   sensor_t * s = esp_camera_sensor_get();
+  esp32cam.http_active = true;
   return httpd_resp_send(req, (const char *)index_ov2640_html, index_ov2640_html_len);
 }
 

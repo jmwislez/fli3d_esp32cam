@@ -94,3 +94,38 @@ void set_camera_resolution (float transRotation, float axialRotation) {
   }
   s->set_framesize(s, (framesize_t)ov2640.resolution);
 }
+
+bool grab_picture () {
+  static uint32_t timestamp_send;
+  ov2640.camera_mode = CAM_SINGLE;
+
+  // grab single frame
+  camera_fb_t * fb = NULL;
+  ov2640.millis = millis();
+  fb = esp_camera_fb_get();
+  sensor_t * s = esp_camera_sensor_get();
+  esp32cam.camera_active = true;
+  esp32cam.camera_rate++;
+  if (esp32cam.sd_enabled and esp32cam.sd_image_enabled) {
+    esp32cam.sd_image_rate++;
+  }
+
+  if (!fb) {
+    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Camera capture failed");
+    return false;
+  }
+
+  size_t out_len, out_width, out_height;
+  uint8_t * out_buf;
+
+  size_t fb_len = 0;
+  if (fb->format == PIXFORMAT_JPEG) {
+    sd_save_image ((const uint8_t *)fb->buf, fb->len);
+  } else {
+    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Grabbed picture is no jpeg");
+  }
+  
+  esp_camera_fb_return(fb);
+  publish_packet ((ccsds_t*)&ov2640);
+  return true;
+}

@@ -1,7 +1,7 @@
 /* 
  *  Fli3d Camera - camera and storage functionality
  *  
- *  For ESP32CAM board with OV2640 camera (compile for AI Thinker ESP32-CAM)
+ *  For ESP32CAM board with OV2640 camera (compile for AI Thinker ESP32-CAM), to compile with "Default with spiffs" partitioning
  *
  */
 
@@ -22,13 +22,15 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.0.6 (20220725)"
+#define SW_VERSION "Fli3d ESP32cam v2.0.8 (20220802)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
-#define SERIAL_KEEPALIVE_OVERRIDE
+//#define SERIAL_TCTM
+//#define SERIAL_KEEPALIVE_OVERRIDE
 
 // Libraries
 #include "fli3d.h"
+#include <ArduinoOTA.h>
 
 // Functions declared in app_httpd.cpp
 void camera_server_setup();
@@ -107,11 +109,16 @@ void setup() {
     publish_packet ((ccsds_t*)tm_this);  // #5
   }
 
+  // Initialize OTA
+  if (config_esp32cam.ota_enable) {
+    ota_setup();
+  }
+  
   // Initialise Timer and close initialisation
   ntp_check();
   timer_setup();
   ov2640.camera_mode = CAM_IDLE;
-  esp32cam.opsmode = MODE_NOMINAL;
+  esp32cam.opsmode = MODE_CHECKOUT;
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, "Initialisation complete");  
 }
 
@@ -120,6 +127,14 @@ void loop() {
 
   timer_loop();
 
+  if (esp32cam.opsmode = MODE_NOMINAL and esp32cam.camera_enabled and esp32cam.sd_image_enabled) { // TODO: this is workaround for not working streaming mode in http interface
+    if (var_timer.do_camera) {
+      grab_picture();
+      var_timer.do_camera = false;
+    }
+  }
+
+  #ifdef SERIAL_TCTM
   // Check for TM from ESP32
   if (serial_check()) {
     start_millis = millis();
@@ -136,7 +151,16 @@ void loop() {
   tm_this->serial_connected = true;
   tm_this->warn_serial_connloss = false;
   #endif
+  #endif // SERIAL_TCTM
 
+  // OTA check
+  if (config_esp32cam.ota_enable) {
+    start_millis = millis();    
+    ArduinoOTA.handle();
+    esp32cam.ota_enabled = true;
+    timer_esp32cam.ota_duration += millis() - start_millis;
+  }
+  
  // FTP check
   if ((esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT or esp32.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
     // FTP server is active when Fli3d is being prepared or done (or no data from ESP32)

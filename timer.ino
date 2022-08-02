@@ -8,6 +8,7 @@ extern File file_json;
  
 void timer_setup() {
     var_timer.next_second = 1000*(millis()/1000) + 1000;
+    var_timer.camera_interval = (1000 / config_esp32cam.camera_rate);
 }
 
 void timer_loop() {
@@ -20,6 +21,10 @@ void timer_loop() {
     if (file_json) { sync_file_json(); }
     var_timer.next_second += 1000;
   }
+  if (timer_esp32cam.millis >= var_timer.next_camera_time) {
+      var_timer.do_camera = true;
+      var_timer.next_camera_time = timer_esp32cam.millis + var_timer.camera_interval;
+    }
   if (timer_esp32cam.millis >= var_timer.next_wifi_time) {
     var_timer.do_wifi = true;
     var_timer.next_wifi_time = timer_esp32cam.millis + WIFI_CHECK*1000;
