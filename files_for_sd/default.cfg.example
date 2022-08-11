@@ -1,0 +1,62 @@
+# default.cfg for Fli3d ESP32CAM
+#
+# wifi LAN settings
+#
+wifi_enable=1
+wifi_sta_enable=1
+wifi_ssid=**********
+wifi_password=**********
+ntp_server=ntp.telenet.be
+#
+# wifi access point by Fli3d ESP32CAM
+#
+wifi_ap_enable=1  
+ap_ssid=fli3d_esp32cam
+ap_password=fli3d_backdoor
+#
+# ftp server by Fli3d ESP32CAM
+#
+# encoding options for ftp_fs:
+# LITTLEFS: 1
+# SD_MMC:   2
+ftp_enable=0
+ftp_fs=2
+ftp_user=esp32cam
+ftp_password=fli3d
+#
+# send debug data over UDP
+#
+wifi_udp_enable=1       
+udp_server=***********
+udp_port=4243
+#
+# send CCSDS data over UDP
+#
+wifi_yamcs_enable=1     
+yamcs_server=***********
+yamcs_tm_port=10043
+yamcs_tc_port=10053
+#
+# file system
+#
+# encoding options for buffer_fs:
+# LITTLEFS: 1
+# SD_MMC:   2
+fs_enable=0
+sd_enable=1
+sd_json_enable=1
+sd_ccsds_enable=1
+buffer_fs=1
+#
+# functionality activation
+#
+camera_enable=1     
+#
+# serial communications settings
+#
+# encoding options for serial_format:
+# CCSDS: 0
+# JSON:  1
+serial_format=1
+#
+# END OF CONFIGURATION FILE

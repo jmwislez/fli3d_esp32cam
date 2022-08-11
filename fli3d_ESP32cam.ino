@@ -22,7 +22,7 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.0.8 (20220802)"
+#define SW_VERSION "Fli3d ESP32cam v2.1.0 (20220803)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 //#define SERIAL_TCTM
@@ -78,7 +78,7 @@ void setup() {
   }
 
   // Now that TM buffering should be hopefully set up, announce we're there
-  sprintf (buffer, "%s started on %s", SW_VERSION, subsystemName[SS_THIS]); 
+  sprintf (buffer, "%s (%s) started on %s", SW_VERSION, LIB_VERSION, subsystemName[SS_THIS]); 
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, buffer);
   publish_packet ((ccsds_t*)tm_this);  // #1
 
@@ -127,7 +127,7 @@ void loop() {
 
   timer_loop();
 
-  if (esp32cam.opsmode = MODE_NOMINAL and esp32cam.camera_enabled and esp32cam.sd_image_enabled) { // TODO: this is workaround for not working streaming mode in http interface
+  if (esp32cam.opsmode == MODE_NOMINAL and esp32cam.camera_enabled and esp32cam.sd_image_enabled) { // TODO: this is workaround for not working streaming mode in http interface
     if (var_timer.do_camera) {
       grab_picture();
       var_timer.do_camera = false;
@@ -162,7 +162,7 @@ void loop() {
   }
   
  // FTP check
-  if ((esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT or esp32.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
+  if ((esp32cam.opsmode == MODE_INIT or esp32cam.opsmode == MODE_CHECKOUT or esp32cam.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
     // FTP server is active when Fli3d is being prepared or done (or no data from ESP32)
     start_millis = millis();    
     ftp_check (config_this->buffer_fs);
@@ -177,7 +177,7 @@ void loop() {
   }
 
   // NTP check
-  if (!tm_this->time_set and (esp32.opsmode == MODE_INIT or esp32.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
+  if (!tm_this->time_set and (esp32cam.opsmode == MODE_INIT or esp32cam.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
     start_millis = millis();
     ntp_check();
     timer_esp32cam.wifi_duration += millis() - start_millis;
