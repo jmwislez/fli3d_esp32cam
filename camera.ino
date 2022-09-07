@@ -65,13 +65,13 @@ bool camera_setup() {
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
     sprintf(buffer, "Camera init failed with error 0x%x", err);
-    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, buffer);
+    publish_event (STS_ESP32CAM, SS_CAMERA, EVENT_ERROR, buffer);
     return false;
   }
 
   sensor_t * s = esp_camera_sensor_get();
   ov2640.resolution = s->status.framesize;
-  publish_event (STS_ESP32CAM, SS_OV2640, EVENT_INIT, "OV2640 camera initialized");
+  publish_event (STS_ESP32CAM, SS_CAMERA, EVENT_INIT, "OV2640 camera initialized");
   return true;
 }
 
@@ -111,7 +111,7 @@ bool grab_picture () {
   }
 
   if (!fb) {
-    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Camera capture failed");
+    publish_event (STS_ESP32CAM, SS_CAMERA, EVENT_ERROR, "Camera capture failed");
     return false;
   }
 
@@ -122,7 +122,7 @@ bool grab_picture () {
   if (fb->format == PIXFORMAT_JPEG) {
     sd_save_image ((const uint8_t *)fb->buf, fb->len);
   } else {
-    publish_event (STS_ESP32CAM, SS_OV2640, EVENT_ERROR, "Grabbed picture is no jpeg");
+    publish_event (STS_ESP32CAM, SS_CAMERA, EVENT_ERROR, "Grabbed picture is no jpeg");
   }
   
   esp_camera_fb_return(fb);

@@ -22,10 +22,10 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.1.0 (20220803)"
+#define SW_VERSION "Fli3d ESP32cam v2.1.1 (20220827)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
-//#define SERIAL_TCTM
+#define SERIAL_TCTM
 //#define SERIAL_KEEPALIVE_OVERRIDE
 
 // Libraries
@@ -33,10 +33,12 @@
 #include <ArduinoOTA.h>
 
 // Functions declared in app_httpd.cpp
-void camera_server_setup();
+//void camera_server_setup();
 
 // Global variables used in this file
 extern char buffer[JSON_MAX_SIZE];
+
+TaskHandle_t LoopCore0;
 
 void setup() {
   // Initialize serial connection to ESP32 (or for debug)
@@ -92,13 +94,13 @@ void setup() {
   }
 
   // If Camera to be enabled and WiFi enabled, initialise
-  if (config_esp32cam.ftp_enable and config_esp32cam.camera_enable) {
-    config_esp32cam.ftp_enable = false;
-    publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "FTP server and web server incompatible. Disabling FTP server.");    
-  }
+  //if (config_esp32cam.ftp_enable and config_esp32cam.camera_enable) {
+  //  config_esp32cam.ftp_enable = false;
+  //  publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "FTP server and web server incompatible. Disabling FTP server.");    
+  //}
   if (config_esp32cam.camera_enable and esp32cam.wifi_enabled) {
     if (esp32cam.camera_enabled = camera_setup()) {
-      camera_server_setup();
+      //camera_server_setup();
       publish_packet ((ccsds_t*)tm_this);  // #4
     }
   } 
@@ -113,6 +115,16 @@ void setup() {
   if (config_esp32cam.ota_enable) {
     ota_setup();
   }
+
+  // Initialize time-critical monitoring through core 0
+  xTaskCreatePinnedToCore(
+    loop_core0,          // name of the task function
+    "loop core 0",       // name of the task
+    1000,                // memory assigned for the task
+    NULL,                // parameter to pass if any
+    1,                   // priority of task, starting from 0(Highestpriority) *IMPORTANT*( if set to 1 and there is no activity in your 2nd loop, it will reset the esp32)
+    &LoopCore0,          // Reference name of taskHandle variable
+    0);                  // choose core (0 or 1)
   
   // Initialise Timer and close initialisation
   ntp_check();
@@ -120,6 +132,18 @@ void setup() {
   ov2640.camera_mode = CAM_IDLE;
   esp32cam.opsmode = MODE_CHECKOUT;
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, "Initialisation complete");  
+}
+
+void loop_core0( void * parameter ) {
+  for (;;) {
+    // Check for TM from ESP32
+    #ifdef SERIAL_TCTM
+    if (serial_check()) {
+      serial_parse();
+    } 
+    #endif
+    delay(1);
+  }
 }
 
 void loop() {
@@ -134,14 +158,13 @@ void loop() {
     }
   }
 
-  #ifdef SERIAL_TCTM
-  // Check for TM from ESP32
-  if (serial_check()) {
-    start_millis = millis();
-    serial_parse();
-    timer_esp32cam.serial_duration = min((uint32_t)255, (uint32_t)millis() - start_millis);
-  } 
-
+  // TC check
+  #ifndef ASYNCUDP
+  start_millis = millis(); 
+  yamcs_tc_check();
+  timer_esp32cam.tc_duration += millis() - start_millis;
+  #endif
+  
   // Serial keepalive mechanism
   #ifndef SERIAL_KEEPALIVE_OVERRIDE
   start_millis = millis();    
@@ -151,8 +174,7 @@ void loop() {
   tm_this->serial_connected = true;
   tm_this->warn_serial_connloss = false;
   #endif
-  #endif // SERIAL_TCTM
-
+    
   // OTA check
   if (config_esp32cam.ota_enable) {
     start_millis = millis();    
@@ -162,7 +184,7 @@ void loop() {
   }
   
  // FTP check
-  if ((esp32cam.opsmode == MODE_INIT or esp32cam.opsmode == MODE_CHECKOUT or esp32cam.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
+  if ((esp32cam.opsmode == MODE_CHECKOUT or esp32cam.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
     // FTP server is active when Fli3d is being prepared or done (or no data from ESP32)
     start_millis = millis();    
     ftp_check (config_this->buffer_fs);
@@ -177,7 +199,7 @@ void loop() {
   }
 
   // NTP check
-  if (!tm_this->time_set and (esp32cam.opsmode == MODE_INIT or esp32cam.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
+  if (!tm_this->time_set and (esp32cam.opsmode == MODE_CHECKOUT) and var_timer.do_ntp and esp32cam.wifi_enabled) {
     start_millis = millis();
     ntp_check();
     timer_esp32cam.wifi_duration += millis() - start_millis;
