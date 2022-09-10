@@ -130,7 +130,7 @@ void setup() {
   ntp_check();
   timer_setup();
   ov2640.camera_mode = CAM_IDLE;
-  esp32cam.opsmode = MODE_CHECKOUT;
+  set_opsmode(MODE_CHECKOUT);
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, "Initialisation complete");  
 }
 
