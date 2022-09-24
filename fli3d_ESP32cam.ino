@@ -22,7 +22,7 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.1.1 (20220827)"
+#define SW_VERSION "Fli3d ESP32cam v2.1.2 (20220914)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 #define SERIAL_TCTM
@@ -72,10 +72,10 @@ void setup() {
   if (config_this->fs_enable) {
     if (tm_this->fs_enabled = fs_setup()) {
       publish_packet ((ccsds_t*)tm_this);  // #0
-      if (file_load_settings (FS_LITTLEFS)) {
-        file_load_config (FS_LITTLEFS, config_this->config_file);
-        file_load_routing (FS_LITTLEFS, config_this->routing_file);
-      }
+//      if (file_load_settings (FS_LITTLEFS)) {
+//        file_load_config (FS_LITTLEFS, config_this->config_file);
+//        file_load_routing (FS_LITTLEFS, config_this->routing_file);
+//      }
     }
   }
 
@@ -128,6 +128,13 @@ void setup() {
   
   // Initialise Timer and close initialisation
   ntp_check();
+  rtc_init();
+  if (tm_this->time_set) {
+    rtc_set_time();
+  }
+  else {
+    tm_this->time_set = rtc_get_time();
+  }
   timer_setup();
   ov2640.camera_mode = CAM_IDLE;
   set_opsmode(MODE_CHECKOUT);
@@ -176,7 +183,7 @@ void loop() {
   #endif
     
   // OTA check
-  if (config_esp32cam.ota_enable) {
+  if (esp32cam.opsmode == MODE_MAINTENANCE and config_esp32cam.ota_enable) {
     start_millis = millis();    
     ArduinoOTA.handle();
     esp32cam.ota_enabled = true;
@@ -184,7 +191,7 @@ void loop() {
   }
   
  // FTP check
-  if ((esp32cam.opsmode == MODE_CHECKOUT or esp32cam.opsmode == MODE_DONE) and tm_this->ftp_enabled) {
+  if ((esp32cam.opsmode == MODE_CHECKOUT or esp32cam.opsmode == MODE_MAINTENANCE) and tm_this->ftp_enabled) {
     // FTP server is active when Fli3d is being prepared or done (or no data from ESP32)
     start_millis = millis();    
     ftp_check (config_this->buffer_fs);
