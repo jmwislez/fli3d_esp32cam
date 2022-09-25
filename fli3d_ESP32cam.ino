@@ -22,7 +22,7 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.1.2 (20220914)"
+#define SW_VERSION "Fli3d ESP32cam v2.1.3 (20220925)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
 #define SERIAL_TCTM

@@ -28,7 +28,7 @@ bool rtc_set_time() {
   timeClient.update();
   datetime.getDateTime(timeClient.getEpochTime());
   dt = {
-            .year = datetime.year,
+            .year = datetime.year-2000,
             .month = datetime.month,
             .day = datetime.day,
             .hour = datetime.hour,
@@ -36,7 +36,7 @@ bool rtc_set_time() {
             .second = datetime.second,
   }; 
   rtc.setDateTime(&dt);
-  sprintf (buffer, "RTC time set to %04u-%02u-%02u %02u:%02u:%02u based on NTP time", dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second);
+  sprintf (buffer, "RTC time set to %04u-%02u-%02u %02u:%02u:%02u based on NTP time", dt.year+2000, dt.month, dt.day, dt.hour, dt.minute, dt.second);
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, buffer);  
 }
 
