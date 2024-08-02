@@ -45,8 +45,13 @@ bool camera_setup() {
   config.pin_pclk = PCLK_GPIO_NUM;
   config.pin_vsync = VSYNC_GPIO_NUM;
   config.pin_href = HREF_GPIO_NUM;
+  #ifndef ESP_ARDUINO_VERSION_MAJOR // ESP32 core v1.0.x
   config.pin_sscb_sda = SIOD_GPIO_NUM;
   config.pin_sscb_scl = SIOC_GPIO_NUM;
+  #else
+  config.pin_sccb_sda = SIOD_GPIO_NUM;
+  config.pin_sccb_scl = SIOC_GPIO_NUM;
+  #endif
   config.pin_pwdn = PWDN_GPIO_NUM;
   config.pin_reset = RESET_GPIO_NUM;
   config.xclk_freq_hz = 20000000;
@@ -96,7 +101,6 @@ void set_camera_resolution (float transRotation, float axialRotation) {
 }
 
 bool grab_picture () {
-  static uint32_t timestamp_send;
   ov2640.camera_mode = CAM_SINGLE;
 
   // grab single frame
@@ -115,10 +119,6 @@ bool grab_picture () {
     return false;
   }
 
-  size_t out_len, out_width, out_height;
-  uint8_t * out_buf;
-
-  size_t fb_len = 0;
   if (fb->format == PIXFORMAT_JPEG) {
     sd_save_image ((const uint8_t *)fb->buf, fb->len);
   } else {

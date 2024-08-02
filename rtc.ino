@@ -8,6 +8,8 @@
  *   RST: Reset     - GPIO 16 (U2RXD) (Must be HIGH for active mode / Active High)
  */
 
+#ifdef RTC
+
 #define RTC_CLK_PIN    1
 #define RTC_DAT_PIN    3
 #define RTC_RST_PIN    16
@@ -20,7 +22,7 @@ Ds1302 rtc(RTC_RST_PIN, RTC_CLK_PIN, RTC_DAT_PIN);
 
 bool rtc_init () {
   // to run once in setup()
-  rtc.init();
+  return rtc.init();
 }
 
 bool rtc_set_time() {
@@ -38,6 +40,7 @@ bool rtc_set_time() {
   rtc.setDateTime(&dt);
   sprintf (buffer, "RTC time set to %04u-%02u-%02u %02u:%02u:%02u based on NTP time", dt.year+2000, dt.month, dt.day, dt.hour, dt.minute, dt.second);
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, buffer);  
+  return true;
 }
 
 bool rtc_get_time() {
@@ -62,3 +65,5 @@ bool rtc_get_time() {
     return false;
   }
 }
+
+#endif

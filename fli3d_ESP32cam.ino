@@ -22,9 +22,10 @@
 
 
 // Set versioning
-#define SW_VERSION "Fli3d ESP32cam v2.1.3 (20220925)"
+#define SW_VERSION "Fli3d ESP32cam v2.2.0 (20240802)"
 #define PLATFORM_ESP32CAM // tell which platform we are on 
 
+//#define RTC
 #define SERIAL_TCTM
 //#define SERIAL_KEEPALIVE_OVERRIDE
 
@@ -36,7 +37,7 @@
 //void camera_server_setup();
 
 // Global variables used in this file
-extern char buffer[JSON_MAX_SIZE];
+extern char buffer[BUFFER_MAX_SIZE];
 
 TaskHandle_t LoopCore0;
 
@@ -52,7 +53,7 @@ void setup() {
 
   // If SD to be enabled and initialization successful, load WiFi and other settings from configuration files on SD
   if (config_esp32cam.sd_enable) {
-    if (esp32cam.sd_enabled = sd_setup()) {
+    if ((esp32cam.sd_enabled = sd_setup())) {
       publish_packet ((ccsds_t*)tm_this);  // #0
       if (file_load_settings (FS_SD_MMC)) {
         file_load_config (FS_SD_MMC, config_this->config_file);
@@ -70,7 +71,7 @@ void setup() {
     publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "Only one file system can be set up (keeping SD, disabling FS).");
   }
   if (config_this->fs_enable) {
-    if (tm_this->fs_enabled = fs_setup()) {
+    if ((tm_this->fs_enabled = fs_setup())) {
       publish_packet ((ccsds_t*)tm_this);  // #0
 //      if (file_load_settings (FS_LITTLEFS)) {
 //        file_load_config (FS_LITTLEFS, config_this->config_file);
@@ -99,7 +100,7 @@ void setup() {
   //  publish_event (STS_THIS, SS_THIS, EVENT_WARNING, "FTP server and web server incompatible. Disabling FTP server.");    
   //}
   if (config_esp32cam.camera_enable and esp32cam.wifi_enabled) {
-    if (esp32cam.camera_enabled = camera_setup()) {
+    if ((esp32cam.camera_enabled = camera_setup())) {
       //camera_server_setup();
       publish_packet ((ccsds_t*)tm_this);  // #4
     }
@@ -126,6 +127,7 @@ void setup() {
     &LoopCore0,          // Reference name of taskHandle variable
     0);                  // choose core (0 or 1)
   
+  #ifdef RTC
   // Initialise Timer and close initialisation
   ntp_check();
   rtc_init();
@@ -135,10 +137,13 @@ void setup() {
   else {
     tm_this->time_set = rtc_get_time();
   }
+  #endif
+
   timer_setup();
   ov2640.camera_mode = CAM_IDLE;
   set_opsmode(MODE_CHECKOUT);
   publish_event (STS_THIS, SS_THIS, EVENT_INIT, "Initialisation complete");  
+
 }
 
 void loop_core0( void * parameter ) {
