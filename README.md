@@ -1,6 +1,6 @@
 # fli3d_ESP32cam
 
-To compile in the Arduino IDE, ESP32 core v1.0.6/2.0.17/3.0.3, for board "AI-THINKER ESP32-CAM", with partitioning scheme "Minimal SPIFFS". If no partitioning schemes are available, add the following lines to `C:\Users\[YOURNAME]\Documents\ArduinoData\packages\esp32\hardware\esp32\1.0.6\boards.txt`:
+To compile in the Arduino IDE, ESP32 core v1.0.6/2.0.17/3.0.x, for board "AI-THINKER ESP32-CAM", with partitioning scheme "Minimal SPIFFS". If no partitioning schemes are available, add the following lines to `C:\Users\[YOURNAME]\Documents\ArduinoData\packages\esp32\hardware\esp32\1.0.6\boards.txt`:
 
 `esp32cam.menu.PartitionScheme.min_spiffs=Minimal SPIFFS (1.9MB APP with OTA/190KB SPIFFS)`
 `esp32cam.menu.PartitionScheme.min_spiffs.build.partitions=min_spiffs`
